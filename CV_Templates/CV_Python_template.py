@@ -12,15 +12,16 @@ import numpy as np
 # This is a library to get access to time-related functionalities
 import time
 
+
 logging.basicConfig(level=logging.INFO)
 
 # Select the first camera (0) that is connected to the machine
 # in Laptops should be the built-in camera
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 if not cap.isOpened():
-    logging.error("Could not open camera 0")
+    logging.error("Could not open camera 1")
     raise SystemExit(1)
-logging.info("Camera 0 opened")
+logging.info("Camera 1 opened")
 
 # Set the width and height of the camera to 1920x1080
 cap.set(3,1920)
@@ -34,10 +35,14 @@ logging.info(
 #Create two opencv named windows
 cv2.namedWindow("frame-image", cv2.WINDOW_AUTOSIZE)
 cv2.namedWindow("gray-image", cv2.WINDOW_AUTOSIZE)
+cv2.namedWindow("canny-image", cv2.WINDOW_AUTOSIZE)
+cv2.namedWindow("gausian-image", cv2.WINDOW_AUTOSIZE)
 
 #Position the windows next to each other
 cv2.moveWindow("frame-image",0,100)
-cv2.moveWindow("gray-image",640,100)
+cv2.moveWindow("gray-image",100,100)
+cv2.moveWindow("canny-image",200,100)
+cv2.moveWindow("gausian-image",300,100)
 
 # Execute this continuously
 last_fps_log = time.perf_counter()
@@ -49,19 +54,31 @@ while(True):
     # Capture current frame from the camera
     ret, frame = cap.read()
     if not ret:
-        logging.error("Could not read a frame from camera 0")
+        logging.error("Could not read a frame from camera 1")
         break
     
     # Convert the image from the camera to Gray scale
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    
+
+    #display the gausian blur image in another window
+    gausian = cv2.GaussianBlur(gray, (9, 9), 0)
+
+    #canny edge detection
+    #change the thresholds to see the effect on the output
+    canny = cv2.Canny(gausian, 40, 100)
+
     # Display the original frame in a window
     cv2.imshow('frame-image',frame)
-
     
     # Display the grey image in another window
     cv2.imshow('gray-image',gray)
-    
+
+    # Display the canny image in another window
+    cv2.imshow('canny-image',canny)
+
+    # Display the gausian image in another window
+    cv2.imshow('gausian-image',gausian)
+
     # Stop the performance counter
     end = time.perf_counter()
     

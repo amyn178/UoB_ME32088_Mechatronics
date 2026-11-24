@@ -12,14 +12,37 @@ import cv2.aruco as aruco
 import logging
 import numpy as np
 import time # We will use this to ensure a steady processing rate
+# First we import our libraries
+import socket   # This library will allow you to communicate over the network
+import logging  # This library will offer us a different method to print information on the terminal (better for debugging purposes)
 
+#set the logging level to INFO
 logging.basicConfig(level=logging.INFO)
+
+# This is the IP address of the machine that the data will be send to
+#TCP_IP = "127.0.0.1"
+
+# This is the REMOTE port of the Server that we are sending the data to
+#TCP_PORT = 25000
+
+# Create the socket for the TCP communication
+#s = socket.socket(socket.AF_INET,        # Family of addresses, in this case IP type 
+                     #socket.SOCK_STREAM)    # What protocol to use, in this case TCP (streamed communications)
+#logging.info('Socket successfully created')
+
+# Establish the connection with the remote Server using their IP and the port                                       
+#s.connect((TCP_IP, TCP_PORT))
+#logging.info('Connected')
 
 # Load the camera calibration values
 camera_calibration = np.load('Sample_Calibration.npz')
 CM=camera_calibration['CM'] #camera matrix
 dist_coef=camera_calibration['dist_coef']# distortion coefficients from the camera
 logging.info("Loaded camera calibration from Sample_Calibration.npz")
+
+#define lazer and motor variables
+LAZER = 0
+MOTOR = 1
 
 # Define the ArUco dictionary and parameters
 marker_size = 40 # the real size of the printed marker in mm
@@ -45,9 +68,9 @@ cv2.moveWindow("Frame", 0, 100)
 # Start capturing video
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
-    logging.error("Could not open camera 0")
+    logging.error("Could not open camera 1")
     raise SystemExit(1)
-logging.info("Camera 0 opened")
+logging.info("Camera 1 opened")
 
 # Set the starting time
 start_time = time.time()
@@ -85,8 +108,24 @@ while True:
         for i in range(len(corners)):
             ok, rvec, tvec = cv2.solvePnP(marker_points, corners[i], CM, dist_coef, flags=cv2.SOLVEPNP_IPPE_SQUARE)
             if ok:
+                tx, ty, tz = tvec.ravel()
+                marker_id = ids
+                #print(f"Marker ID {marker_id}: tvec = X {tx:.1f}, Y {ty:.1f}, Z {tz:.1f} mm)")
+                print(f"Marker ID {marker_id}: tvec = X {tx:.1f}, Y {ty:.1f}, Z {tz:.1f} mm)")
                 # Draw axis for each marker (axis length 10 mm)
                 frame = cv2.drawFrameAxes(frame, CM, dist_coef, rvec, tvec, 10)
+           
+            if marker_id == 43:
+                LAZER = 1
+                MOTOR = 0
+            elif marker_id == 35:
+                MOTOR = 1
+                LAZER = 0
+            else:
+                LAZER = 0
+                MOTOR = 0  
+
+            print(f"Lazer {LAZER}, Motor {MOTOR}")
 
     # Add the frame rate to the image
     cv2.putText(frame, f"CAMERA FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
@@ -105,6 +144,13 @@ while True:
     if elapsed_time < processing_period:
         time.sleep(processing_period - elapsed_time)
     start_time = time.time()
+
+    # We are going to send 3 bytes with values 50, 60, 70, ten times
+    #data = bytes([tx,ty,marker_id])
+
+    #for i in range(0,10):
+        #s.send(data)        # Send all 3 bytes in a go
+        #time.sleep(1)       # Wait for 1 second
 
 
 
